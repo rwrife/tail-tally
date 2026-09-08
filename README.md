@@ -70,7 +70,8 @@ Tail Tally is a routine organizer, not a veterinary or medical device. It does n
 
 ## Current status
 
-Documentation and backlog scaffold only.
+The Flutter workspace and automated format, analysis, test, Android, and iOS
+compile gates are in place. Product features are being built in milestone order.
 
 ### Milestones
 
@@ -79,15 +80,35 @@ Documentation and backlog scaffold only.
 - M3: Notifications, export/import, privacy controls
 - M4: Accessibility hardening and release packaging
 
-## Development quickstart (planned)
+## Development quickstart
+
+Install [Flutter 3.47.2](https://docs.flutter.dev/get-started/install) (Dart
+3.13.2), plus the Android or iOS tooling required for the device you target.
+Then run from the repository root:
 
 ```bash
-# planned once Flutter workspace is generated
 flutter --version
-flutter pub get
+flutter pub get --enforce-lockfile
+dart format --output=none --set-exit-if-changed .
+flutter analyze --fatal-infos --fatal-warnings
 flutter test
 flutter run
 ```
+
+`flutter --version` must report Flutter `3.47.2` and Dart `3.13.2`. Core app
+usage is offline and requires no account or cloud service. CI runs the same
+quality gates and also compiles an Android debug APK and an unsigned iOS
+simulator target.
+
+## Source layout
+
+- `lib/app/` — Flutter UI, navigation, state, and composition
+- `lib/domain/` — pure-Dart entities, rules, use cases, and contracts
+- `lib/data/` — local Drift/SQLite and import/export implementations
+- `lib/platform/` — device notifications, permissions, and file adapters
+- `test/` — unit and widget tests
+
+See [`docs/architecture.md`](docs/architecture.md) for dependency rules.
 
 ## Repository source of truth note
 
