@@ -203,6 +203,11 @@ abstract class LocalDataRepository {
   Future<void> ensureOpen();
   Future<void> close();
 
+  /// Run [action] as one atomic store transaction. Multi-step operations
+  /// that must not interleave with other writers (e.g. the duplicate
+  /// completion check-then-insert) use this.
+  Future<T> transaction<T>(Future<T> Function() action);
+
   Future<HouseholdMember> addMember(NewMember draft);
   Future<List<HouseholdMember>> listMembers();
   Future<void> renameMember(int id, String displayName);
