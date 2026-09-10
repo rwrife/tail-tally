@@ -71,7 +71,13 @@ Tail Tally is a routine organizer, not a veterinary or medical device. It does n
 ## Current status
 
 The Flutter workspace and automated format, analysis, test, Android, and iOS
-compile gates are in place. Product features are being built in milestone order.
+compile gates are in place. The local data model (Drift schema, repositories,
+migrations) is implemented, and the primary daily workflow now exists: a
+grouped daily timeline (overdue / due now / coming up / done today), one-tap
+completion with an optional note, bounded undo, and shared-handoff markers
+showing who completed each routine. Duplicate completions are guarded both in
+the domain workflow (transactional check) and in the store (partial unique
+index on `done` events). Product features continue in milestone order.
 
 ### Milestones
 

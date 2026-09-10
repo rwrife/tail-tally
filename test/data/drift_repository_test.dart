@@ -215,6 +215,9 @@ void main() {
     test('mixed-offset inputs are normalized to UTC instants', () async {
       // Same instant expressed as local time and as UTC must store
       // identically (epoch-based storage per the timestamp contract).
+      // The second event is a `skipped` at the same instant: `done` events
+      // are unique per (routine, instant) by the v3 partial index, skips
+      // are outside that constraint.
       final asUtc = DateTime.utc(2026, 9, 8, 21, 30);
       final asLocal = asUtc.toLocal();
 
@@ -229,7 +232,7 @@ void main() {
         NewCompletionEvent(
           routineId: routineId,
           completedAtUtc: asLocal,
-          kind: CompletionKind.done,
+          kind: CompletionKind.skipped,
         ),
       );
 
@@ -239,6 +242,30 @@ void main() {
         asUtc.millisecondsSinceEpoch,
       );
     });
+
+    test(
+      'duplicate done events at the same instant are rejected by the store',
+      () async {
+        final at = DateTime.utc(2026, 9, 8, 21, 30);
+        await repo.recordCompletion(
+          NewCompletionEvent(
+            routineId: routineId,
+            completedAtUtc: at,
+            kind: CompletionKind.done,
+          ),
+        );
+        await expectLater(
+          repo.recordCompletion(
+            NewCompletionEvent(
+              routineId: routineId,
+              completedAtUtc: at,
+              kind: CompletionKind.done,
+            ),
+          ),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
     test('lastCompletionFor returns most recent or null', () async {
       expect(await repo.lastCompletionFor(routineId), isNull);

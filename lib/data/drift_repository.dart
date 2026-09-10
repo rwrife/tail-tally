@@ -25,6 +25,10 @@ class DriftLocalDataRepository implements LocalDataRepository {
   @override
   Future<void> close() => db.close();
 
+  @override
+  Future<T> transaction<T>(Future<T> Function() action) =>
+      db.transaction(action);
+
   // ---------------------------------------------------------------- members
 
   @override

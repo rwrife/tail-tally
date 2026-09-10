@@ -80,16 +80,37 @@ class TailTallyDatabase extends _$TailTallyDatabase {
   TailTallyDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
-    beforeOpen: (details) => customStatement('PRAGMA foreign_keys = ON'),
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+      // v3: DB-level duplicate guard — at most one `done` event per
+      // (routine, instant). Skips keep their duplicates; only the
+      // completion path is unique-constrained.
+      await customStatement(
+        'CREATE UNIQUE INDEX IF NOT EXISTS completion_events_done_unique '
+        'ON completion_events (routine_id, completed_at) '
+        "WHERE kind = 'done'",
+      );
+    },
     onUpgrade: (m, from, to) async {
       // v1 -> v2: completion events gained a free-form note field.
       if (from < 2) {
         await m.addColumn(completionEvents, completionEvents.note);
+      }
+      // v2 -> v3: partial unique index enforcing one `done` completion per
+      // (routine, instant). Existing v2 data cannot violate it — the index
+      // is created fresh and future inserts go through the workflow, which
+      // never writes two `done` events for one window instance.
+      if (from < 3) {
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS completion_events_done_unique '
+          'ON completion_events (routine_id, completed_at) '
+          "WHERE kind = 'done'",
+        );
       }
     },
   );
