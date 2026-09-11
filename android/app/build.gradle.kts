@@ -27,6 +27,8 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Required by flutter_local_notifications (issue #4).
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -42,6 +44,18 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
+}
+
+// flutter_local_notifications needs java.time desugaring on older Android
+// devices (issue #4). See the plugin README "Android setup".
+android {
+    compileOptions {
+        isCoreLibraryDesugaringEnabled = true
+    }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 flutter {

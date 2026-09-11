@@ -1826,6 +1826,224 @@ class CompletionEventsCompanion extends UpdateCompanion<CompletionEventRow> {
   }
 }
 
+class $ReminderSettingsTableTable extends ReminderSettingsTable
+    with TableInfo<$ReminderSettingsTableTable, ReminderSettingRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReminderSettingsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, payload];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reminder_settings_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReminderSettingRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => const {};
+  @override
+  ReminderSettingRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReminderSettingRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $ReminderSettingsTableTable createAlias(String alias) {
+    return $ReminderSettingsTableTable(attachedDatabase, alias);
+  }
+}
+
+class ReminderSettingRow extends DataClass
+    implements Insertable<ReminderSettingRow> {
+  /// Singleton row — always id 1.
+  final int id;
+
+  /// JSON blob: {schemaVersion, notificationsEnabled, leadTimeMinutes,
+  /// quietHours:{startMinutes,endMinutes}}. Versioned so future schema
+  /// evolution inside the blob stays interpretable (issue #5 reuses this
+  /// pattern for backups).
+  final String payload;
+  const ReminderSettingRow({required this.id, required this.payload});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  ReminderSettingsTableCompanion toCompanion(bool nullToAbsent) {
+    return ReminderSettingsTableCompanion(
+      id: Value(id),
+      payload: Value(payload),
+    );
+  }
+
+  factory ReminderSettingRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReminderSettingRow(
+      id: serializer.fromJson<int>(json['id']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  ReminderSettingRow copyWith({int? id, String? payload}) =>
+      ReminderSettingRow(id: id ?? this.id, payload: payload ?? this.payload);
+  ReminderSettingRow copyWithCompanion(ReminderSettingsTableCompanion data) {
+    return ReminderSettingRow(
+      id: data.id.present ? data.id.value : this.id,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderSettingRow(')
+          ..write('id: $id, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, payload);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReminderSettingRow &&
+          other.id == this.id &&
+          other.payload == this.payload);
+}
+
+class ReminderSettingsTableCompanion
+    extends UpdateCompanion<ReminderSettingRow> {
+  final Value<int> id;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const ReminderSettingsTableCompanion({
+    this.id = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReminderSettingsTableCompanion.insert({
+    required int id,
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       payload = Value(payload);
+  static Insertable<ReminderSettingRow> custom({
+    Expression<int>? id,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReminderSettingsTableCompanion copyWith({
+    Value<int>? id,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return ReminderSettingsTableCompanion(
+      id: id ?? this.id,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderSettingsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$TailTallyDatabase extends GeneratedDatabase {
   _$TailTallyDatabase(QueryExecutor e) : super(e);
   $TailTallyDatabaseManager get managers => $TailTallyDatabaseManager(this);
@@ -1840,6 +2058,8 @@ abstract class _$TailTallyDatabase extends GeneratedDatabase {
   late final $CompletionEventsTable completionEvents = $CompletionEventsTable(
     this,
   );
+  late final $ReminderSettingsTableTable reminderSettingsTable =
+      $ReminderSettingsTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1850,6 +2070,7 @@ abstract class _$TailTallyDatabase extends GeneratedDatabase {
     routines,
     scheduleWindows,
     completionEvents,
+    reminderSettingsTable,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3924,6 +4145,179 @@ typedef $$CompletionEventsTableProcessedTableManager =
       CompletionEventRow,
       PrefetchHooks Function({bool routineId, bool completedByMemberId})
     >;
+typedef $$ReminderSettingsTableTableCreateCompanionBuilder =
+    ReminderSettingsTableCompanion Function({
+      required int id,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$ReminderSettingsTableTableUpdateCompanionBuilder =
+    ReminderSettingsTableCompanion Function({
+      Value<int> id,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$ReminderSettingsTableTableFilterComposer
+    extends Composer<_$TailTallyDatabase, $ReminderSettingsTableTable> {
+  $$ReminderSettingsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReminderSettingsTableTableOrderingComposer
+    extends Composer<_$TailTallyDatabase, $ReminderSettingsTableTable> {
+  $$ReminderSettingsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReminderSettingsTableTableAnnotationComposer
+    extends Composer<_$TailTallyDatabase, $ReminderSettingsTableTable> {
+  $$ReminderSettingsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$ReminderSettingsTableTableTableManager
+    extends
+        RootTableManager<
+          _$TailTallyDatabase,
+          $ReminderSettingsTableTable,
+          ReminderSettingRow,
+          $$ReminderSettingsTableTableFilterComposer,
+          $$ReminderSettingsTableTableOrderingComposer,
+          $$ReminderSettingsTableTableAnnotationComposer,
+          $$ReminderSettingsTableTableCreateCompanionBuilder,
+          $$ReminderSettingsTableTableUpdateCompanionBuilder,
+          (
+            ReminderSettingRow,
+            BaseReferences<
+              _$TailTallyDatabase,
+              $ReminderSettingsTableTable,
+              ReminderSettingRow
+            >,
+          ),
+          ReminderSettingRow,
+          PrefetchHooks Function()
+        > {
+  $$ReminderSettingsTableTableTableManager(
+    _$TailTallyDatabase db,
+    $ReminderSettingsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReminderSettingsTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ReminderSettingsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ReminderSettingsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReminderSettingsTableCompanion(
+                id: id,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int id,
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => ReminderSettingsTableCompanion.insert(
+                id: id,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ReminderSettingsTableTable, ReminderSettingRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$TailTallyDatabase,
+                    $ReminderSettingsTableTable,
+                    ReminderSettingRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReminderSettingsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TailTallyDatabase,
+      $ReminderSettingsTableTable,
+      ReminderSettingRow,
+      $$ReminderSettingsTableTableFilterComposer,
+      $$ReminderSettingsTableTableOrderingComposer,
+      $$ReminderSettingsTableTableAnnotationComposer,
+      $$ReminderSettingsTableTableCreateCompanionBuilder,
+      $$ReminderSettingsTableTableUpdateCompanionBuilder,
+      (
+        ReminderSettingRow,
+        BaseReferences<
+          _$TailTallyDatabase,
+          $ReminderSettingsTableTable,
+          ReminderSettingRow
+        >,
+      ),
+      ReminderSettingRow,
+      PrefetchHooks Function()
+    >;
 
 class $TailTallyDatabaseManager {
   final _$TailTallyDatabase _db;
@@ -3937,4 +4331,6 @@ class $TailTallyDatabaseManager {
       $$ScheduleWindowsTableTableManager(_db, _db.scheduleWindows);
   $$CompletionEventsTableTableManager get completionEvents =>
       $$CompletionEventsTableTableManager(_db, _db.completionEvents);
+  $$ReminderSettingsTableTableTableManager get reminderSettingsTable =>
+      $$ReminderSettingsTableTableTableManager(_db, _db.reminderSettingsTable);
 }

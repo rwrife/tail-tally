@@ -73,4 +73,49 @@ void main() {
 
     await upgraded.close();
   });
+
+  test(
+    'v3 database upgrades to v4 and gains the reminder settings table',
+    () async {
+      // --- Phase 1: create a database with current code, then simulate the
+      // v3 on-disk shape by dropping the v4 table and stamping user_version.
+      final v3ish = TailTallyDatabase(NativeDatabase(dbFile));
+      final repo = DriftLocalDataRepository(v3ish);
+      await repo.ensureOpen();
+      final pet = await repo.addPet(
+        const NewPet(name: 'Maple', species: 'cat'),
+      );
+      final routine = await repo.addRoutine(
+        NewRoutine(petId: pet.id, name: 'Evening feed'),
+      );
+      await repo.recordCompletion(
+        NewCompletionEvent(
+          routineId: routine.id,
+          completedAtUtc: DateTime.utc(2026, 9, 5, 19, 0),
+          kind: CompletionKind.done,
+        ),
+      );
+      await v3ish.customStatement('DROP TABLE reminder_settings_table');
+      await v3ish.customStatement('PRAGMA user_version = 3');
+      await v3ish.close();
+
+      // --- Phase 2: reopen with current code; onUpgrade(3 -> 4) must
+      // recreate the settings table without touching history.
+      final upgraded = TailTallyDatabase(NativeDatabase(dbFile));
+      final upgradedRepo = DriftLocalDataRepository(upgraded);
+      await upgradedRepo.ensureOpen();
+
+      final history = await upgradedRepo.listCompletions(routineId: routine.id);
+      expect(history, hasLength(1));
+
+      expect(await upgradedRepo.readReminderSettingsJson(), isNull);
+      await upgradedRepo.writeReminderSettingsJson('{"schemaVersion":1}');
+      expect(
+        await upgradedRepo.readReminderSettingsJson(),
+        '{"schemaVersion":1}',
+      );
+
+      await upgraded.close();
+    },
+  );
 }

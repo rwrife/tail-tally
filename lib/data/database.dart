@@ -73,14 +73,33 @@ class CompletionEvents extends Table {
   TextColumn get note => text().nullable()();
 }
 
+@DataClassName('ReminderSettingRow')
+class ReminderSettingsTable extends Table {
+  /// Singleton row — always id 1.
+  IntColumn get id => integer()();
+
+  /// JSON blob: {schemaVersion, notificationsEnabled, leadTimeMinutes,
+  /// quietHours:{startMinutes,endMinutes}}. Versioned so future schema
+  /// evolution inside the blob stays interpretable (issue #5 reuses this
+  /// pattern for backups).
+  TextColumn get payload => text()();
+}
+
 @DriftDatabase(
-  tables: [HouseholdMembers, Pets, Routines, ScheduleWindows, CompletionEvents],
+  tables: [
+    HouseholdMembers,
+    Pets,
+    Routines,
+    ScheduleWindows,
+    CompletionEvents,
+    ReminderSettingsTable,
+  ],
 )
 class TailTallyDatabase extends _$TailTallyDatabase {
   TailTallyDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -111,6 +130,12 @@ class TailTallyDatabase extends _$TailTallyDatabase {
           'ON completion_events (routine_id, completed_at) '
           "WHERE kind = 'done'",
         );
+      }
+      // v3 -> v4: reminder settings singleton table (issue #4). A fresh
+      // empty table means "no user preferences yet" — reads fall back to
+      // defaults, so no data backfill is required.
+      if (from < 4) {
+        await m.createTable(reminderSettingsTable);
       }
     },
   );
