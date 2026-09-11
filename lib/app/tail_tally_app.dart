@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 
 import '../data/database_connection.dart';
@@ -6,14 +8,21 @@ import '../domain/entities.dart';
 import '../domain/schedule.dart';
 import '../domain/task_workflow.dart';
 import '../domain/timeline.dart';
+import '../platform/notifications.dart';
+import 'reminder_service.dart';
+import 'reminder_settings_screen.dart';
 
 /// Root widget for Tail Tally's local-first mobile experience.
 class TailTallyApp extends StatefulWidget {
-  const TailTallyApp({super.key, this.repository});
+  const TailTallyApp({super.key, this.repository, this.notificationGateway});
 
   /// Injected for tests and future tooling; production opens the on-device
   /// database lazily at this composition root.
   final DriftLocalDataRepository? repository;
+
+  /// Injected in tests; production uses the real plugin gateway and falls
+  /// back to a no-op gateway when the platform has no notification support.
+  final NotificationGateway? notificationGateway;
 
   @override
   State<TailTallyApp> createState() => _TailTallyAppState();
@@ -33,6 +42,11 @@ class _TailTallyAppState extends State<TailTallyApp> {
   Widget build(BuildContext context) {
     final repo = _repo ??= DriftLocalDataRepository(openAppDatabase())
       ..ensureOpen();
+    final gateway =
+        widget.notificationGateway ??
+        (Platform.isAndroid || Platform.isIOS
+            ? PluginNotificationGateway()
+            : NoopNotificationGateway());
     return MaterialApp(
       title: 'Tail Tally',
       debugShowCheckedModeBanner: false,
@@ -40,7 +54,7 @@ class _TailTallyAppState extends State<TailTallyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff41644a)),
         useMaterial3: true,
       ),
-      home: TimelineHome(repository: repo),
+      home: TimelineHome(repository: repo, notificationGateway: gateway),
     );
   }
 }
@@ -49,9 +63,17 @@ class _TailTallyAppState extends State<TailTallyApp> {
 /// status, one-tap completion with an optional note, bounded undo, and the
 /// shared-handoff marker on completed tasks.
 class TimelineHome extends StatefulWidget {
-  const TimelineHome({super.key, required this.repository});
+  const TimelineHome({
+    super.key,
+    required this.repository,
+    this.notificationGateway,
+  });
 
   final LocalDataRepository repository;
+
+  /// When provided, completions resync reminders and the app bar gains a
+  /// reminders/settings entry.
+  final NotificationGateway? notificationGateway;
 
   @override
   State<TimelineHome> createState() => _TimelineHomeState();
@@ -62,6 +84,7 @@ class _TimelineHomeState extends State<TimelineHome> {
     widget.repository,
   );
   late final TaskWorkflow _workflow = TaskWorkflow(widget.repository);
+  ReminderService? _reminderService;
   final UndoLedger _undoLedger = UndoLedger();
 
   Set<int>? _selectedPetIds; // null = all pets
@@ -72,7 +95,23 @@ class _TimelineHomeState extends State<TimelineHome> {
   @override
   void initState() {
     super.initState();
+    final gateway = widget.notificationGateway;
+    if (gateway != null) {
+      _reminderService = ReminderService(
+        repo: widget.repository,
+        gateway: gateway,
+      );
+      gateway.initialize().then((_) => _syncReminders());
+    }
     _refresh();
+  }
+
+  Future<void> _syncReminders() async {
+    try {
+      await _reminderService?.resync();
+    } catch (_) {
+      // Reminder failures must never break the timeline workflow.
+    }
   }
 
   Future<void> _refresh() async {
@@ -138,6 +177,7 @@ class _TimelineHomeState extends State<TimelineHome> {
       case Completed(:final event):
         _undoLedger.record(event.id);
         await _refresh();
+        await _syncReminders();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -149,6 +189,7 @@ class _TimelineHomeState extends State<TimelineHome> {
                 await _workflow.undo(event.id);
                 _undoLedger.forget(event.id);
                 await _refresh();
+                await _syncReminders();
               },
             ),
           ),
@@ -175,7 +216,25 @@ class _TimelineHomeState extends State<TimelineHome> {
               .map((p) => p.name)
               .join(', ');
     return Scaffold(
-      appBar: AppBar(title: Text(title.isEmpty ? 'Today' : title)),
+      appBar: AppBar(
+        title: Text(title.isEmpty ? 'Today' : title),
+        actions: [
+          if (_reminderService != null)
+            IconButton(
+              key: const Key('open-reminder-settings'),
+              tooltip: 'Reminder settings',
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        ReminderSettingsScreen(service: _reminderService!),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
       body: SafeArea(
         child: _error != null
             ? Center(

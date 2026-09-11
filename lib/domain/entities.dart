@@ -238,4 +238,11 @@ abstract class LocalDataRepository {
 
   /// Undo a mistaken completion by removing the event entirely.
   Future<void> deleteCompletion(int id);
+
+  /// Persisted reminder preferences, or null when the user has never
+  /// changed them (callers apply defaults).
+  Future<String?> readReminderSettingsJson();
+
+  /// Replace the persisted reminder preferences blob.
+  Future<void> writeReminderSettingsJson(String payload);
 }

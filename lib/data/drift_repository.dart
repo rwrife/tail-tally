@@ -219,6 +219,32 @@ class DriftLocalDataRepository implements LocalDataRepository {
     return (db.delete(db.completionEvents)..where((r) => r.id.equals(id))).go();
   }
 
+  // ------------------------------------------------------ reminder settings
+
+  static const _settingsId = 1;
+
+  @override
+  Future<String?> readReminderSettingsJson() async {
+    final rows = await (db.select(
+      db.reminderSettingsTable,
+    )..where((r) => r.id.equals(_settingsId))).get();
+    if (rows.isEmpty) return null;
+    return rows.first.payload;
+  }
+
+  @override
+  Future<void> writeReminderSettingsJson(String payload) {
+    return db.transaction(() async {
+      await db.delete(db.reminderSettingsTable).go();
+      await db
+          .into(db.reminderSettingsTable)
+          .insert(
+            ReminderSettingRow(id: _settingsId, payload: payload),
+            mode: InsertMode.insertOrReplace,
+          );
+    });
+  }
+
   // ------------------------------------------------------------- conversions
 
   static String _encodeDays(Set<int> days) {
