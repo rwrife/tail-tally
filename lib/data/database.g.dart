@@ -2044,6 +2044,222 @@ class ReminderSettingsTableCompanion
   }
 }
 
+class $RetentionSettingsTableTable extends RetentionSettingsTable
+    with TableInfo<$RetentionSettingsTableTable, RetentionSettingRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RetentionSettingsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, payload];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'retention_settings_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RetentionSettingRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => const {};
+  @override
+  RetentionSettingRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RetentionSettingRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $RetentionSettingsTableTable createAlias(String alias) {
+    return $RetentionSettingsTableTable(attachedDatabase, alias);
+  }
+}
+
+class RetentionSettingRow extends DataClass
+    implements Insertable<RetentionSettingRow> {
+  /// Singleton row — always id 1.
+  final int id;
+
+  /// JSON blob: {schemaVersion, preference: keepAll|keep365Days|
+  /// keep180Days|keep90Days}.
+  final String payload;
+  const RetentionSettingRow({required this.id, required this.payload});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  RetentionSettingsTableCompanion toCompanion(bool nullToAbsent) {
+    return RetentionSettingsTableCompanion(
+      id: Value(id),
+      payload: Value(payload),
+    );
+  }
+
+  factory RetentionSettingRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RetentionSettingRow(
+      id: serializer.fromJson<int>(json['id']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  RetentionSettingRow copyWith({int? id, String? payload}) =>
+      RetentionSettingRow(id: id ?? this.id, payload: payload ?? this.payload);
+  RetentionSettingRow copyWithCompanion(RetentionSettingsTableCompanion data) {
+    return RetentionSettingRow(
+      id: data.id.present ? data.id.value : this.id,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RetentionSettingRow(')
+          ..write('id: $id, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, payload);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RetentionSettingRow &&
+          other.id == this.id &&
+          other.payload == this.payload);
+}
+
+class RetentionSettingsTableCompanion
+    extends UpdateCompanion<RetentionSettingRow> {
+  final Value<int> id;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const RetentionSettingsTableCompanion({
+    this.id = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RetentionSettingsTableCompanion.insert({
+    required int id,
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       payload = Value(payload);
+  static Insertable<RetentionSettingRow> custom({
+    Expression<int>? id,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RetentionSettingsTableCompanion copyWith({
+    Value<int>? id,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return RetentionSettingsTableCompanion(
+      id: id ?? this.id,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RetentionSettingsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$TailTallyDatabase extends GeneratedDatabase {
   _$TailTallyDatabase(QueryExecutor e) : super(e);
   $TailTallyDatabaseManager get managers => $TailTallyDatabaseManager(this);
@@ -2060,6 +2276,8 @@ abstract class _$TailTallyDatabase extends GeneratedDatabase {
   );
   late final $ReminderSettingsTableTable reminderSettingsTable =
       $ReminderSettingsTableTable(this);
+  late final $RetentionSettingsTableTable retentionSettingsTable =
+      $RetentionSettingsTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2071,6 +2289,7 @@ abstract class _$TailTallyDatabase extends GeneratedDatabase {
     scheduleWindows,
     completionEvents,
     reminderSettingsTable,
+    retentionSettingsTable,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -4318,6 +4537,180 @@ typedef $$ReminderSettingsTableTableProcessedTableManager =
       ReminderSettingRow,
       PrefetchHooks Function()
     >;
+typedef $$RetentionSettingsTableTableCreateCompanionBuilder =
+    RetentionSettingsTableCompanion Function({
+      required int id,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$RetentionSettingsTableTableUpdateCompanionBuilder =
+    RetentionSettingsTableCompanion Function({
+      Value<int> id,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$RetentionSettingsTableTableFilterComposer
+    extends Composer<_$TailTallyDatabase, $RetentionSettingsTableTable> {
+  $$RetentionSettingsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RetentionSettingsTableTableOrderingComposer
+    extends Composer<_$TailTallyDatabase, $RetentionSettingsTableTable> {
+  $$RetentionSettingsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RetentionSettingsTableTableAnnotationComposer
+    extends Composer<_$TailTallyDatabase, $RetentionSettingsTableTable> {
+  $$RetentionSettingsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$RetentionSettingsTableTableTableManager
+    extends
+        RootTableManager<
+          _$TailTallyDatabase,
+          $RetentionSettingsTableTable,
+          RetentionSettingRow,
+          $$RetentionSettingsTableTableFilterComposer,
+          $$RetentionSettingsTableTableOrderingComposer,
+          $$RetentionSettingsTableTableAnnotationComposer,
+          $$RetentionSettingsTableTableCreateCompanionBuilder,
+          $$RetentionSettingsTableTableUpdateCompanionBuilder,
+          (
+            RetentionSettingRow,
+            BaseReferences<
+              _$TailTallyDatabase,
+              $RetentionSettingsTableTable,
+              RetentionSettingRow
+            >,
+          ),
+          RetentionSettingRow,
+          PrefetchHooks Function()
+        > {
+  $$RetentionSettingsTableTableTableManager(
+    _$TailTallyDatabase db,
+    $RetentionSettingsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RetentionSettingsTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$RetentionSettingsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RetentionSettingsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RetentionSettingsTableCompanion(
+                id: id,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int id,
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => RetentionSettingsTableCompanion.insert(
+                id: id,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<
+                    $RetentionSettingsTableTable,
+                    RetentionSettingRow
+                  >(table),
+                  BaseReferences<
+                    _$TailTallyDatabase,
+                    $RetentionSettingsTableTable,
+                    RetentionSettingRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RetentionSettingsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TailTallyDatabase,
+      $RetentionSettingsTableTable,
+      RetentionSettingRow,
+      $$RetentionSettingsTableTableFilterComposer,
+      $$RetentionSettingsTableTableOrderingComposer,
+      $$RetentionSettingsTableTableAnnotationComposer,
+      $$RetentionSettingsTableTableCreateCompanionBuilder,
+      $$RetentionSettingsTableTableUpdateCompanionBuilder,
+      (
+        RetentionSettingRow,
+        BaseReferences<
+          _$TailTallyDatabase,
+          $RetentionSettingsTableTable,
+          RetentionSettingRow
+        >,
+      ),
+      RetentionSettingRow,
+      PrefetchHooks Function()
+    >;
 
 class $TailTallyDatabaseManager {
   final _$TailTallyDatabase _db;
@@ -4333,4 +4726,9 @@ class $TailTallyDatabaseManager {
       $$CompletionEventsTableTableManager(_db, _db.completionEvents);
   $$ReminderSettingsTableTableTableManager get reminderSettingsTable =>
       $$ReminderSettingsTableTableTableManager(_db, _db.reminderSettingsTable);
+  $$RetentionSettingsTableTableTableManager get retentionSettingsTable =>
+      $$RetentionSettingsTableTableTableManager(
+        _db,
+        _db.retentionSettingsTable,
+      );
 }

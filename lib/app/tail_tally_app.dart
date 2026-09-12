@@ -2,19 +2,28 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 
+import '../data/database.dart';
 import '../data/database_connection.dart';
 import '../data/drift_repository.dart';
 import '../domain/entities.dart';
 import '../domain/schedule.dart';
 import '../domain/task_workflow.dart';
 import '../domain/timeline.dart';
+import '../platform/file_sharing.dart';
 import '../platform/notifications.dart';
+import 'data_privacy_service.dart';
+import 'privacy_settings_screen.dart';
 import 'reminder_service.dart';
 import 'reminder_settings_screen.dart';
 
 /// Root widget for Tail Tally's local-first mobile experience.
 class TailTallyApp extends StatefulWidget {
-  const TailTallyApp({super.key, this.repository, this.notificationGateway});
+  const TailTallyApp({
+    super.key,
+    this.repository,
+    this.notificationGateway,
+    this.fileGateway,
+  });
 
   /// Injected for tests and future tooling; production opens the on-device
   /// database lazily at this composition root.
@@ -23,6 +32,10 @@ class TailTallyApp extends StatefulWidget {
   /// Injected in tests; production uses the real plugin gateway and falls
   /// back to a no-op gateway when the platform has no notification support.
   final NotificationGateway? notificationGateway;
+
+  /// Injected in tests; production uses the system file picker and falls
+  /// back to a no-op gateway on unsupported platforms.
+  final FileGateway? fileGateway;
 
   @override
   State<TailTallyApp> createState() => _TailTallyAppState();
@@ -47,6 +60,11 @@ class _TailTallyAppState extends State<TailTallyApp> {
         (Platform.isAndroid || Platform.isIOS
             ? PluginNotificationGateway()
             : NoopNotificationGateway());
+    final fileGateway =
+        widget.fileGateway ??
+        (Platform.isAndroid || Platform.isIOS
+            ? const PluginFileGateway()
+            : NoopFileGateway());
     return MaterialApp(
       title: 'Tail Tally',
       debugShowCheckedModeBanner: false,
@@ -54,7 +72,11 @@ class _TailTallyAppState extends State<TailTallyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff41644a)),
         useMaterial3: true,
       ),
-      home: TimelineHome(repository: repo, notificationGateway: gateway),
+      home: TimelineHome(
+        repository: repo,
+        notificationGateway: gateway,
+        fileGateway: fileGateway,
+      ),
     );
   }
 }
@@ -67,6 +89,7 @@ class TimelineHome extends StatefulWidget {
     super.key,
     required this.repository,
     this.notificationGateway,
+    this.fileGateway,
   });
 
   final LocalDataRepository repository;
@@ -74,6 +97,9 @@ class TimelineHome extends StatefulWidget {
   /// When provided, completions resync reminders and the app bar gains a
   /// reminders/settings entry.
   final NotificationGateway? notificationGateway;
+
+  /// When provided, the app bar gains the privacy & data entry (issue #5).
+  final FileGateway? fileGateway;
 
   @override
   State<TimelineHome> createState() => _TimelineHomeState();
@@ -85,6 +111,7 @@ class _TimelineHomeState extends State<TimelineHome> {
   );
   late final TaskWorkflow _workflow = TaskWorkflow(widget.repository);
   ReminderService? _reminderService;
+  DataPrivacyService? _privacyService;
   final UndoLedger _undoLedger = UndoLedger();
 
   Set<int>? _selectedPetIds; // null = all pets
@@ -102,6 +129,14 @@ class _TimelineHomeState extends State<TimelineHome> {
         gateway: gateway,
       );
       gateway.initialize().then((_) => _syncReminders());
+    }
+    final fileGateway = widget.fileGateway;
+    if (fileGateway != null) {
+      _privacyService = DataPrivacyService(
+        repo: widget.repository,
+        files: fileGateway,
+        appSchemaVersion: TailTallyDatabase.currentSchemaVersion,
+      );
     }
     _refresh();
   }
@@ -219,6 +254,20 @@ class _TimelineHomeState extends State<TimelineHome> {
       appBar: AppBar(
         title: Text(title.isEmpty ? 'Today' : title),
         actions: [
+          if (_privacyService != null)
+            IconButton(
+              key: const Key('open-privacy-settings'),
+              tooltip: 'Privacy & data',
+              icon: const Icon(Icons.privacy_tip_outlined),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        PrivacySettingsScreen(service: _privacyService!),
+                  ),
+                );
+              },
+            ),
           if (_reminderService != null)
             IconButton(
               key: const Key('open-reminder-settings'),

@@ -118,4 +118,57 @@ void main() {
       await upgraded.close();
     },
   );
+
+  test(
+    'v4 database upgrades to v5 and gains the retention settings table',
+    () async {
+      // --- Phase 1: create a database with current code, then simulate
+      // the v4 on-disk shape by dropping the v5 table and stamping
+      // user_version.
+      final v4ish = TailTallyDatabase(NativeDatabase(dbFile));
+      final repo = DriftLocalDataRepository(v4ish);
+      await repo.ensureOpen();
+      final pet = await repo.addPet(
+        const NewPet(name: 'Cinder', species: 'dog'),
+      );
+      final routine = await repo.addRoutine(
+        NewRoutine(petId: pet.id, name: 'Evening feed'),
+      );
+      await repo.recordCompletion(
+        NewCompletionEvent(
+          routineId: routine.id,
+          completedAtUtc: DateTime.utc(2026, 9, 6, 19, 0),
+          kind: CompletionKind.done,
+        ),
+      );
+      await repo.writeReminderSettingsJson('{"schemaVersion":1}');
+      await v4ish.customStatement('DROP TABLE retention_settings_table');
+      await v4ish.customStatement('PRAGMA user_version = 4');
+      await v4ish.close();
+
+      // --- Phase 2: reopen with current code; onUpgrade(4 -> 5) must
+      // recreate the retention table without touching anything else.
+      final upgraded = TailTallyDatabase(NativeDatabase(dbFile));
+      final upgradedRepo = DriftLocalDataRepository(upgraded);
+      await upgradedRepo.ensureOpen();
+
+      final history = await upgradedRepo.listCompletions(routineId: routine.id);
+      expect(history, hasLength(1));
+      expect(
+        await upgradedRepo.readReminderSettingsJson(),
+        '{"schemaVersion":1}',
+      );
+
+      expect(await upgradedRepo.readRetentionSettingsJson(), isNull);
+      await upgradedRepo.writeRetentionSettingsJson(
+        '{"schemaVersion":1,"preference":"keep90Days"}',
+      );
+      expect(
+        await upgradedRepo.readRetentionSettingsJson(),
+        '{"schemaVersion":1,"preference":"keep90Days"}',
+      );
+
+      await upgraded.close();
+    },
+  );
 }

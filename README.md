@@ -56,13 +56,29 @@ Households with one or more pets often track routines in scattered notes, chat t
 ## Privacy, permissions, and data ownership
 
 - Local-first storage by default; no mandatory remote services
-- No account required to use core features
-- Data export/import is user-controlled and explicit
+- No account required to use core features. Tail Tally has no servers: no
+  sign-in, no sync, no telemetry, no background data collection
+  (microphone, camera, and location are never requested)
+- User-owned data controls under **Privacy & data**, all explicit and
+  on-device:
+  - Versioned JSON backup export/import with schema-compatibility and
+    referential-integrity checks before anything is written; a failed or
+    cancelled import never touches the current database
+  - CSV export of completion history over a selectable date range
+  - History retention preferences (keep all, or prune events older than
+    3/6/12 months)
+  - Delete-all-data with a confirmation step and a post-deletion
+    verification pass
+- Files only leave or enter the app through the system file picker you
+  drive; the app never uploads or shares anything on its own
 - Optional permissions requested just-in-time:
-  - Notifications (routine reminders)
-  - Photos (pet profile images)
-- No background microphone/location collection
-- Users can delete all local data from in-app settings
+  - Notifications (routine reminders) — never required; the timeline and
+    history work identically with reminders off
+  - Photos (pet profile images) — stored as file references outside the
+    database
+- Backups contain exactly the local store contents (members, pets,
+  routines, schedules, completion history, reminder and retention
+  settings) — nothing else exists to export
 
 ## Health/wellness limitation
 

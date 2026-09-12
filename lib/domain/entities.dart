@@ -17,6 +17,8 @@
 /// imported data must be normalized with `toUtc()` before being written.
 library;
 
+import 'backup.dart';
+
 /// A member of the household who can own or complete routines.
 class HouseholdMember {
   const HouseholdMember({
@@ -245,4 +247,21 @@ abstract class LocalDataRepository {
 
   /// Replace the persisted reminder preferences blob.
   Future<void> writeReminderSettingsJson(String payload);
+
+  /// Persisted retention preference blob, or null when never changed
+  /// (callers apply the keep-all default).
+  Future<String?> readRetentionSettingsJson();
+
+  /// Replace the persisted retention preference blob.
+  Future<void> writeRetentionSettingsJson(String payload);
+
+  /// Delete every user-owned row in the store (members, pets, routines,
+  /// windows, completions, settings). Used by the explicit delete-all-data
+  /// control; implementations must run this atomically.
+  Future<void> deleteAllLocalData();
+
+  /// Replace the entire store with [snapshot] atomically, preserving the
+  /// snapshot's ids so cross-references stay intact. Callers validate the
+  /// snapshot before invoking this.
+  Future<void> restoreSnapshot(BackupSnapshot snapshot);
 }
