@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../domain/backup.dart';
 import '../domain/entities.dart';
 import 'database.dart';
 
@@ -243,6 +244,124 @@ class DriftLocalDataRepository implements LocalDataRepository {
             mode: InsertMode.insertOrReplace,
           );
     });
+  }
+
+  // --------------------------------------------------- retention settings
+
+  @override
+  Future<String?> readRetentionSettingsJson() async {
+    final rows = await (db.select(
+      db.retentionSettingsTable,
+    )..where((r) => r.id.equals(_settingsId))).get();
+    if (rows.isEmpty) return null;
+    return rows.first.payload;
+  }
+
+  @override
+  Future<void> writeRetentionSettingsJson(String payload) {
+    return db.transaction(() async {
+      await db.delete(db.retentionSettingsTable).go();
+      await db
+          .into(db.retentionSettingsTable)
+          .insert(
+            RetentionSettingRow(id: _settingsId, payload: payload),
+            mode: InsertMode.insertOrReplace,
+          );
+    });
+  }
+
+  // ------------------------------------------------- privacy: wipe/restore
+
+  @override
+  Future<void> deleteAllLocalData() => transaction(() async {
+    await _wipeAllTables();
+  });
+
+  @override
+  Future<void> restoreSnapshot(BackupSnapshot snapshot) =>
+      transaction(() async {
+        await _wipeAllTables();
+        for (final m in snapshot.members) {
+          await db
+              .into(db.householdMembers)
+              .insert(
+                HouseholdMembersCompanion.insert(
+                  id: Value(m.id),
+                  displayName: m.displayName,
+                  isLocalDeviceOwner: Value(m.isLocalDeviceOwner),
+                ),
+              );
+        }
+        for (final p in snapshot.pets) {
+          await db
+              .into(db.pets)
+              .insert(
+                PetsCompanion.insert(
+                  id: Value(p.id),
+                  name: p.name,
+                  species: p.species,
+                  photoRef: Value(p.photoRef),
+                ),
+              );
+        }
+        for (final r in snapshot.routines) {
+          await db
+              .into(db.routines)
+              .insert(
+                RoutinesCompanion.insert(
+                  id: Value(r.id),
+                  petId: r.petId,
+                  name: r.name,
+                  defaultAssigneeId: Value(r.defaultAssigneeId),
+                ),
+              );
+        }
+        for (final w in snapshot.windows) {
+          await db
+              .into(db.scheduleWindows)
+              .insert(
+                ScheduleWindowsCompanion.insert(
+                  id: Value(w.id),
+                  routineId: w.routineId,
+                  startHour: Value(w.startHour),
+                  startMinute: Value(w.startMinute),
+                  endHour: Value(w.endHour),
+                  endMinute: Value(w.endMinute),
+                  daysOfWeek: Value((w.daysOfWeek.toList()..sort()).join(',')),
+                  crossesMidnight: Value(w.crossesMidnight),
+                ),
+              );
+        }
+        for (final c in snapshot.completions) {
+          await db
+              .into(db.completionEvents)
+              .insert(
+                CompletionEventsCompanion.insert(
+                  routineId: c.routineId,
+                  completedAt: c.completedAtUtc.toUtc(),
+                  kind: Value(c.kind),
+                  completedByMemberId: Value(c.completedByMemberId),
+                  note: Value(c.note),
+                ),
+              );
+        }
+        if (snapshot.reminderSettingsJson != null) {
+          await writeReminderSettingsJson(snapshot.reminderSettingsJson!);
+        }
+        if (snapshot.retentionSettingsJson != null) {
+          await writeRetentionSettingsJson(snapshot.retentionSettingsJson!);
+        }
+      });
+
+  /// Child-tables-first ordering; safe with foreign_keys ON.
+  Future<void> _wipeAllTables() async {
+    await db.delete(db.completionEvents).go();
+    await db.delete(db.scheduleWindows).go();
+    await db.delete(db.routines).go();
+    await db.delete(db.pets).go();
+    await db.delete(db.householdMembers).go();
+    await db.delete(db.reminderSettingsTable).go();
+    await db.delete(db.retentionSettingsTable).go();
   }
 
   // ------------------------------------------------------------- conversions
