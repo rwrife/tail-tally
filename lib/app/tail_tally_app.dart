@@ -337,6 +337,9 @@ class _TimelineHomeState extends State<TimelineHome> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
           child: Text(
+            // Keyed header: cards now carry per-card status chips with the
+            // same words, so header assertions must be key-scoped.
+            key: Key('group-header-${group.name}'),
             groupLabel(group),
             style: Theme.of(context).textTheme.titleSmall,
           ),
@@ -386,7 +389,7 @@ class _PetFilterBar extends StatelessWidget {
       child: Row(
         children: [
           FilterChip(
-            label: const Text('All pets'),
+            label: const Text('All pets', semanticsLabel: 'Show all pets'),
             selected: all,
             onSelected: (_) => onChanged(null),
           ),
@@ -394,7 +397,14 @@ class _PetFilterBar extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 8),
               child: FilterChip(
-                label: Text('${pet.name} (${pet.species})'),
+                // The semantic label overrides the visual "Name (species)"
+                // so screen readers announce the filter action cleanly
+                // (issue #6); merged chip semantics use the Text's own
+                // semanticsLabel.
+                label: Text(
+                  '${pet.name} (${pet.species})',
+                  semanticsLabel: 'Filter to ${pet.name}, ${pet.species}',
+                ),
                 selected: !all && selectedPetIds!.contains(pet.id),
                 onSelected: (selected) {
                   final current = {...?selectedPetIds};
@@ -431,6 +441,15 @@ class _TimelineCard extends StatelessWidget {
     return '${fmt(entry.instance.start)}–${fmt(entry.instance.end)}$cross';
   }
 
+  /// Plain-language status for screen readers and for the visible status
+  /// chip — status is never conveyed by color or icon shape alone (issue #6).
+  String get _statusLabel => switch (entry.status) {
+    TaskStatus.overdue => 'Overdue',
+    TaskStatus.due => 'Due now',
+    TaskStatus.scheduled => 'Coming up',
+    TaskStatus.completed => 'Done',
+  };
+
   @override
   Widget build(BuildContext context) {
     final completed = entry.status == TaskStatus.completed;
@@ -442,6 +461,16 @@ class _TimelineCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(_timeLabel),
+            // Visible, text-based status chip: a word, not just a color, so
+            // due/completed/overdue survive colorblindness and contrast
+            // extremes.
+            _StatusChip(
+              key: Key(
+                'status-${entry.instance.window.id}-${entry.instance.start.millisecondsSinceEpoch}',
+              ),
+              label: _statusLabel,
+              status: entry.status,
+            ),
             if (completed)
               Text(
                 entry.completedByName == null
@@ -452,15 +481,71 @@ class _TimelineCard extends StatelessWidget {
           ],
         ),
         trailing: completed
-            ? const Icon(Icons.check_circle, color: Colors.green)
+            // The completed icon is decorative: the "Done" chip and the
+            // handoff line already carry the state in words.
+            ? const Icon(
+                Icons.check_circle,
+                semanticLabel: 'Completed',
+                color: Colors.green,
+              )
             : FilledButton.icon(
                 key: Key(
                   'complete-${entry.instance.window.id}-${entry.instance.start.millisecondsSinceEpoch}',
                 ),
                 onPressed: onComplete,
                 icon: const Icon(Icons.check),
-                label: const Text('Done'),
+                label: Text(
+                  'Done',
+                  semanticsLabel:
+                      'Mark ${entry.routine.name} for ${entry.pet.name} done',
+                ),
               ),
+      ),
+    );
+  }
+}
+
+/// Small word-based status badge (Overdue / Due now / Coming up / Done).
+///
+/// Color is an accent, never the message: the label text is the same string
+/// screen readers and sighted users rely on.
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({super.key, required this.label, required this.status});
+
+  final String label;
+  final TaskStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (Color bg, Color fg) = switch (status) {
+      TaskStatus.overdue => (scheme.errorContainer, scheme.onErrorContainer),
+      TaskStatus.due => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
+      TaskStatus.scheduled => (
+        scheme.surfaceContainerHighest,
+        scheme.onSurfaceVariant,
+      ),
+      TaskStatus.completed => (
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+      ),
+    };
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Semantics(
+        // Group so the chip reads as one unit prefixed with its meaning.
+        label: 'Status: $label',
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: fg),
+          ),
+        ),
       ),
     );
   }

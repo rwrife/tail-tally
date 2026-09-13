@@ -307,10 +307,16 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
                 if (_statusMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 16),
-                    child: Text(
-                      _statusMessage!,
-                      key: const Key('reminder-status'),
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    // Live region: screen readers announce the result after
+                    // each change without the user re-navigating here.
+                    child: Semantics(
+                      liveRegion: true,
+                      label: _statusMessage!,
+                      child: Text(
+                        _statusMessage!,
+                        key: const Key('reminder-status'),
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
                     ),
                   ),
                 const SizedBox(height: 24),
