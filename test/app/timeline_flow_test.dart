@@ -5,6 +5,7 @@ import 'package:tail_tally/app/tail_tally_app.dart';
 import 'package:tail_tally/data/database.dart';
 import 'package:tail_tally/data/drift_repository.dart';
 import 'package:tail_tally/data/seed_data.dart';
+import 'package:tail_tally/domain/timeline.dart';
 
 void main() {
   late TailTallyDatabase db;
@@ -36,10 +37,14 @@ void main() {
     await pumpApp(tester);
 
     expect(find.text('Today'), findsOneWidget);
-    expect(find.text('Overdue'), findsOneWidget);
-    expect(find.text('Coming up'), findsOneWidget);
-    expect(find.text('Due now'), findsNothing);
-    expect(find.text('Done today'), findsNothing);
+    // Group headers are key-scoped because per-card status chips reuse the
+    // same words as visible non-color status cues (issue #6).
+    Finder header(TimelineGroup group) =>
+        find.byKey(Key('group-header-${group.name}'));
+    expect(header(TimelineGroup.overdue), findsOneWidget);
+    expect(header(TimelineGroup.scheduled), findsOneWidget);
+    expect(header(TimelineGroup.due), findsNothing);
+    expect(header(TimelineGroup.completed), findsNothing);
 
     expect(find.text('Biscuit — Morning walk'), findsOneWidget);
     expect(find.text('Biscuit — Evening feed'), findsOneWidget);
@@ -59,7 +64,7 @@ void main() {
 
     expect(find.textContaining('Morning walk marked done'), findsOneWidget);
     expect(find.textContaining('Done by You • long route'), findsOneWidget);
-    expect(find.text('Done today'), findsOneWidget);
+    expect(find.byKey(const Key('group-header-completed')), findsOneWidget);
 
     // The completed card no longer offers a Done button.
     expect(
@@ -80,8 +85,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Still overdue, no completion logged.
-    expect(find.text('Overdue'), findsOneWidget);
-    expect(find.text('Done today'), findsNothing);
+    expect(find.byKey(const Key('group-header-overdue')), findsOneWidget);
+    expect(find.byKey(const Key('group-header-completed')), findsNothing);
     final events = await repo.listCompletions();
     expect(events.where((e) => e.note != null), isEmpty);
   });
@@ -102,7 +107,7 @@ void main() {
     await tester.pumpAndSettle(); // undo + refresh
 
     expect(find.textContaining('Done by You'), findsNothing);
-    expect(find.text('Overdue'), findsOneWidget);
+    expect(find.byKey(const Key('group-header-overdue')), findsOneWidget);
     final events = await repo.listCompletions();
     // Only yesterday's seeded event survives; today's completion was undone.
     expect(events, hasLength(1));

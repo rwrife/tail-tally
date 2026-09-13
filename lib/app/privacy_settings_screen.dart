@@ -20,6 +20,31 @@ class PrivacySettingsScreen extends StatefulWidget {
   State<PrivacySettingsScreen> createState() => _PrivacySettingsScreenState();
 }
 
+/// Compact busy spinner (the full-size progress indicator is too heavy for
+/// a list-row trailing slot).
+class _TinySpinner extends StatelessWidget {
+  const _TinySpinner();
+
+  @override
+  Widget build(BuildContext context) {
+    return const CircularProgressIndicator(strokeWidth: 2);
+  }
+}
+
+/// Visible + spoken busy cue shown in a row's trailing slot while an
+/// operation runs (issue #6: previously an invisible spacer).
+class _BusyIndicator extends StatelessWidget {
+  const _BusyIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Working…',
+      child: const SizedBox(width: 20, height: 20, child: _TinySpinner()),
+    );
+  }
+}
+
 class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
   bool _busy = false;
   String? _status;
@@ -239,7 +264,8 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
               'Save a versioned copy of pets, routines, and history.',
             ),
             trailing: _busy
-                ? const SizedBox(width: 20, height: 20)
+                // Visible + spoken busy cue (was an invisible spacer).
+                ? const _BusyIndicator()
                 : const Icon(Icons.chevron_right),
             onTap: _busy ? null : _exportBackup,
           ),
@@ -252,7 +278,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
               'Completion history for a date range you choose.',
             ),
             trailing: _busy
-                ? const SizedBox(width: 20, height: 20)
+                ? const _BusyIndicator()
                 : const Icon(Icons.chevron_right),
             onTap: _busy ? null : _exportCsv,
           ),
@@ -265,7 +291,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
               'Replaces local data after a compatibility check.',
             ),
             trailing: _busy
-                ? const SizedBox(width: 20, height: 20)
+                ? const _BusyIndicator()
                 : const Icon(Icons.chevron_right),
             onTap: _busy ? null : _importBackup,
           ),
@@ -297,10 +323,16 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
           if (_status != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                _status!,
-                key: const Key('privacy-status'),
-                style: Theme.of(context).textTheme.bodyMedium,
+              // Live region so import/export/retention outcomes are spoken
+              // aloud the moment they change.
+              child: Semantics(
+                liveRegion: true,
+                label: _status!,
+                child: Text(
+                  _status!,
+                  key: const Key('privacy-status'),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ),
             ),
           const SizedBox(height: 24),
