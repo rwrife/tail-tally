@@ -45,7 +45,10 @@ Tail Tally is a local-first mobile lifestyle app for shared pet-care routines.
 4. **Shared-home UX**: assignment/handoff fields, timeline filtering by person/pet
 5. **Privacy/data ownership**: export/import, delete-all-data controls, retention settings
 6. **Accessibility hardening**: screen-reader semantics, color contrast, text scaling
-7. **Packaging**: signed release candidates, changelog, onboarding docs
+7. **Packaging**: repeatable internal release candidates, changelog, and
+   distribution checklist. The current CI output is explicitly non-production:
+   a debug-signed Android APK and an unsigned iOS Simulator app. Production
+   signing remains follow-up work.
 
 ## 4) Testing strategy
 
@@ -57,9 +60,21 @@ Tail Tally is a local-first mobile lifestyle app for shared pet-care routines.
 
 ## 5) Packaging and distribution plan
 
-- CI builds for Android and iOS targets
-- Internal test builds first (debug/profile), then release candidates
-- Documented release checklist and semantic versioning
+- CI gates Android and iOS packaging on format, analysis, full tests, migration,
+  privacy, and accessibility checks
+- Manual runs produce 14-day internal artifacts in
+  [GitHub Actions](https://github.com/rwrife/tail-tally/actions); matching `v*`
+  tag runs create an immutable prerelease in
+  [GitHub Releases](https://github.com/rwrife/tail-tally/releases) with SHA-256
+  checksums and source provenance
+- Internal test outputs are honestly labeled debug-signed Android and unsigned
+  iOS Simulator artifacts; production signing and physical iOS device
+  distribution are deferred
+- Semantic versioning, changelog, tag guard, and distribution steps are defined
+  in [`docs/release-checklist.md`](docs/release-checklist.md)
+- Passing a tag run makes the prerelease automatically available; any wider
+  distribution remains manually gated on the unchecked physical-device,
+  signing, and release-readiness verification in that checklist
 - Export/import compatibility matrix by schema version
 
 ## 6) Risks
