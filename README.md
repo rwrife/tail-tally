@@ -86,8 +86,9 @@ Tail Tally is a routine organizer, not a veterinary or medical device. It does n
 
 ## Current status
 
-The Flutter workspace and automated format, analysis, test, Android, and iOS
-compile gates are in place. The local data model (Drift schema, repositories,
+The first internal candidate is version `0.1.0-rc.1+2`. The Flutter workspace
+and automated format, analysis, test, Android, and iOS packaging gates are in
+place. The local data model (Drift schema, repositories,
 migrations) is implemented, and the primary daily workflow now exists: a
 grouped daily timeline (overdue / due now / coming up / done today), one-tap
 completion with an optional note, bounded undo, and shared-handoff markers
@@ -119,8 +120,13 @@ flutter run
 
 `flutter --version` must report Flutter `3.47.2` and Dart `3.13.2`. Core app
 usage is offline and requires no account or cloud service. CI runs the same
-quality gates and also compiles an Android debug APK and an unsigned iOS
-simulator target.
+quality gates before packaging a debug-signed Android APK and a tarred,
+unsigned iOS Simulator `.app` for internal testing. Neither artifact is a
+store-signed production build. See the [`CHANGELOG.md`](CHANGELOG.md) and
+[`release checklist`](docs/release-checklist.md) for version/tag rules,
+artifact limitations, checksums, provenance, and manual verification.
+Workflow artifacts are available from [GitHub Actions](https://github.com/rwrife/tail-tally/actions),
+and tag-run prereleases are published under [GitHub Releases](https://github.com/rwrife/tail-tally/releases).
 
 ## Source layout
 
