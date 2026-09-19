@@ -1,19 +1,13 @@
 # Changelog
 
-All notable changes to Tail Tally are recorded here. Versions use Semantic
-Versioning; the `+N` suffix is the monotonically increasing mobile build number.
+## 1.0 (3) — Native iPhone conversion
 
-## 0.1.0-rc.1+2 - 2026-09-14
+- Replaced Flutter and Android with SwiftUI and a native iPhone-only Xcode project, targeting iOS 17+.
+- Added native pet, household, and weekly routine setup.
+- Preserved daily timeline, completion/undo, notes, handoff markers, reminders, backup/restore, CSV, retention, and deletion.
+- Added history browsing and note correction.
+- Replaced Drift with validated atomic local JSON storage; existing Flutter JSON backups remain importable.
+- Added native scheduling, DST, reminder, backup, and persistence tests, plus iOS-only CI.
+- Installed the supplied green paw/checkmark/tail icon and prepared App Store copy and screenshots.
 
-First internal release candidate.
-
-- Added the local-first daily pet-care timeline, completion/undo workflow, and
-  shared-household handoff markers.
-- Added local reminders, versioned JSON backup/import, CSV export, retention,
-  and delete-all-data controls.
-- Added accessibility semantics and regression coverage for key workflows.
-- Added a gated, repeatable internal distribution pipeline for a debug-signed
-  Android APK and an unsigned iOS simulator app archive.
-
-This candidate is for internal testing. It is not store-signed and makes no
-medical, cloud-sync, or production-readiness claim.
+The previous Flutter candidate was 0.1.0-rc.1+2. Export a JSON backup before moving an existing Flutter installation to the native app.

@@ -1,143 +1,46 @@
 # Tail Tally
 
-Local-first mobile app for multi-pet households to coordinate feeding, walks, litter care, and supply reminders with offline history and export—no accounts required.
+A native SwiftUI app for keeping pet-care routines on track. Built for **iPhone, iOS 17 or later**, with no accounts, servers, analytics, or third-party dependencies.
 
-## Motivation
+## Features
 
-Households with one or more pets often track routines in scattered notes, chat threads, or memory. That causes duplicate feedings, missed walks, unclear handoffs, and poor visibility into recurring supply needs.
+- Pet profiles, household members, routine assignments, and weekly schedule windows
+- Today’s timeline grouped into overdue, due now, coming up, and completed routines
+- One-tap completion, optional notes and attribution, and undo for the three most recent completions in a session
+- History with today/week/all filters and note corrections
+- Optional local notifications, lead times, and quiet hours
+- Versioned JSON backup/restore, date-range CSV export, retention, and confirmed deletion
+- Native navigation, forms, Dynamic Type, VoiceOver labels, and light/dark appearance
 
-## Target users
+All household data stays in an atomically written, protected JSON file in Application Support. Files are exported or imported only through the system document picker. Household attribution is local to this iPhone; devices do not sync.
 
-- Multi-person households sharing pet-care responsibilities
-- Solo pet owners who want a simple daily routine/history log
-- Pet sitters within a home context (not a commercial booking platform)
+## Build and run
 
-## Concrete use cases
+Open `TailTally.xcodeproj`, select the **TailTally** scheme, choose an iPhone simulator, and Run. For a physical iPhone, choose your development team in Signing & Capabilities. Xcode 15 or newer is required (validated with Xcode 26.6).
 
-- Mark a dog walk as done, with time and optional notes
-- Record cat litter scooping/refresh events and see last-completed status
-- Track feeding events per pet to avoid double-feeding
-- Log low-supply events (food/litter/waste bags) and schedule reminders
-- Export routine history for personal records or sitter handoff
-
-## End-to-end workflow
-
-1. Create household profile (local-only) and add pets.
-2. Define reusable routines (feeding, walks, litter, grooming, meds-reminder as non-clinical schedule only).
-3. Assign optional responsibility defaults (person A mornings, person B evenings).
-4. Complete routine events from a daily timeline with quick actions.
-5. Review today/week history and outstanding tasks.
-6. Export JSON/CSV backup for transfer or archival.
-
-## MVP features
-
-- Pet profiles (name, species, optional photo, routine preferences)
-- Reusable routine templates with schedule windows
-- Daily timeline with completion logging and edit/undo
-- Simple assignment/handoff markers for shared households
-- Local notifications for upcoming/overdue routine windows
-- Local export/import (JSON backup + CSV activity export)
-- Accessibility baseline (dynamic type, high contrast support, screen-reader labels)
-
-## Non-goals (MVP)
-
-- No cloud sync/accounts/subscriptions
-- No telehealth, diagnosis, treatment, or emergency detection
-- No wearable/GPS live tracking
-- No marketplace, payments, or sitter hiring workflows
-- No smart-feeder or IoT automation in initial scope
-
-## Platforms and framework
-
-- Primary: iOS + Android
-- Framework: Flutter (single cross-platform codebase)
-- Local storage: SQLite via Drift
-
-## Privacy, permissions, and data ownership
-
-- Local-first storage by default; no mandatory remote services
-- No account required to use core features. Tail Tally has no servers: no
-  sign-in, no sync, no telemetry, no background data collection
-  (microphone, camera, and location are never requested)
-- User-owned data controls under **Privacy & data**, all explicit and
-  on-device:
-  - Versioned JSON backup export/import with schema-compatibility and
-    referential-integrity checks before anything is written; a failed or
-    cancelled import never touches the current database
-  - CSV export of completion history over a selectable date range
-  - History retention preferences (keep all, or prune events older than
-    3/6/12 months)
-  - Delete-all-data with a confirmation step and a post-deletion
-    verification pass
-- Files only leave or enter the app through the system file picker you
-  drive; the app never uploads or shares anything on its own
-- Optional permissions requested just-in-time:
-  - Notifications (routine reminders) — never required; the timeline and
-    history work identically with reminders off
-  - Photos (pet profile images) — stored as file references outside the
-    database
-- Backups contain exactly the local store contents (members, pets,
-  routines, schedules, completion history, reminder and retention
-  settings) — nothing else exists to export
-
-## Health/wellness limitation
-
-Tail Tally is a routine organizer, not a veterinary or medical device. It does not diagnose conditions, recommend treatment, or provide emergency monitoring.
-
-## Current status
-
-The first internal candidate is version `0.1.0-rc.1+2`. The Flutter workspace
-and automated format, analysis, test, Android, and iOS packaging gates are in
-place. The local data model (Drift schema, repositories,
-migrations) is implemented, and the primary daily workflow now exists: a
-grouped daily timeline (overdue / due now / coming up / done today), one-tap
-completion with an optional note, bounded undo, and shared-handoff markers
-showing who completed each routine. Duplicate completions are guarded both in
-the domain workflow (transactional check) and in the store (partial unique
-index on `done` events). Product features continue in milestone order.
-
-### Milestones
-
-- M1: Project skeleton, CI, and local domain model
-- M2: Routine timeline + completion workflow
-- M3: Notifications, export/import, privacy controls
-- M4: Accessibility hardening and release packaging
-
-## Development quickstart
-
-Install [Flutter 3.47.2](https://docs.flutter.dev/get-started/install) (Dart
-3.13.2), plus the Android or iOS tooling required for the device you target.
-Then run from the repository root:
-
-```bash
-flutter --version
-flutter pub get --enforce-lockfile
-dart format --output=none --set-exit-if-changed .
-flutter analyze --fatal-infos --fatal-warnings
-flutter test
-flutter run
+```sh
+# If the system defaults to Command Line Tools, select Xcode for this shell:
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+swift test
+xcodebuild -project TailTally.xcodeproj -scheme TailTally \
+  -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
 ```
 
-`flutter --version` must report Flutter `3.47.2` and Dart `3.13.2`. Core app
-usage is offline and requires no account or cloud service. CI runs the same
-quality gates before packaging a debug-signed Android APK and a tarred,
-unsigned iOS Simulator `.app` for internal testing. Neither artifact is a
-store-signed production build. See the [`CHANGELOG.md`](CHANGELOG.md) and
-[`release checklist`](docs/release-checklist.md) for version/tag rules,
-artifact limitations, checksums, provenance, and manual verification.
-Workflow artifacts are available from [GitHub Actions](https://github.com/rwrife/tail-tally/actions),
-and tag-run prereleases are published under [GitHub Releases](https://github.com/rwrife/tail-tally/releases).
+The app target uses `TARGETED_DEVICE_FAMILY = 1`; iPad, Mac Catalyst, Designed for Mac, and Designed for Apple Vision support are disabled. iPadOS may still offer Apple’s iPhone compatibility mode; there is no native iPad target. The Swift package’s macOS platform exists only to run the domain tests on a development Mac.
+
+## Migration from Flutter
+
+The native app replaces the Flutter/Android workspace. Before replacing an existing Flutter installation, use **Privacy & data → Export backup (JSON)**. Import that file in the native app’s **Settings → Restore from backup**. Version 1 / schema 4 Flutter backups remain readable, including UTC timestamps and reminder/retention settings. The old SQLite database is not automatically migrated or deleted. Photo references in old backups are preserved as metadata; profile-photo selection and display are not implemented.
 
 ## Source layout
 
-- `lib/app/` — Flutter UI, navigation, state, and composition
-- `lib/domain/` — pure-Dart entities, rules, use cases, and contracts
-- `lib/data/` — local Drift/SQLite and import/export implementations
-- `lib/platform/` — device notifications, permissions, and file adapters
-- `test/` — unit and widget tests
+- `TailTally/` — SwiftUI app, household management, settings, notification adapter, and assets
+- `Sources/TailTallyCore/` — Foundation-only models, scheduling, backup/CSV validation, atomic store
+- `Tests/TailTallyCoreTests/` — native domain and persistence regression tests
+- `app-store/` — App Store copy and 6.5-inch screenshots
+- `scripts/` — repeatable screenshot capture
 
-See [`docs/architecture.md`](docs/architecture.md) for dependency rules.
+Notifications cover the next seven days (at most 60 pending requests) and refresh after changes, when opening the app, and on significant clock changes. Reopen the app regularly to replenish them. No background refresh is promised.
 
-## Repository source of truth note
-
-If this project later adds hardware integration, final BOM data will live in KiCad schematic symbol properties and be exported to `bom/bom.csv`. For the current mobile-only MVP, no hardware BOM is maintained.
+Tail Tally is a routine organizer, not a veterinary advice or emergency-monitoring service. See [architecture](docs/architecture.md) and the [release checklist](docs/release-checklist.md).

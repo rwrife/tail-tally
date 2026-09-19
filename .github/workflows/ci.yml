@@ -1,212 +1,39 @@
-name: CI and internal distribution
-
+name: Native iPhone app
 on:
   pull_request:
   push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+    branches: [main]
+    tags: ['v*']
   workflow_dispatch:
-    inputs:
-      expected_version:
-        description: 'Optional exact pubspec version, for example 0.1.0-rc.1+2'
-        required: false
-        type: string
-
 permissions:
   contents: read
-
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref_type != 'tag' }}
-
-env:
-  FLUTTER_VERSION: 3.47.2
-
+  group: native-ios-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  quality:
-    name: Version, format, analyze, and test gates
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      release_version: ${{ steps.version.outputs.release_version }}
-    steps:
-      - name: Check out source
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-      - name: Validate version and release tag
-        id: version
-        env:
-          EXPECTED_VERSION: ${{ inputs.expected_version }}
-          RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-        run: >-
-          python3 tools/release.py validate
-          --tag "$RELEASE_TAG"
-          --expected "$EXPECTED_VERSION"
-          --github-output >> "$GITHUB_OUTPUT"
-      - name: Test release validation and provenance helpers
-        run: python3 -m unittest discover -s tools/tests -v
-      - name: Install Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          channel: stable
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-      - name: Resolve locked dependencies
-        run: flutter pub get --enforce-lockfile
-      - name: Verify dependency resolution is clean
-        run: git diff --exit-code
-      - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed .
-      - name: Analyze
-        run: flutter analyze --fatal-infos --fatal-warnings
-      - name: Run full test suite
-        run: flutter test --coverage
-      - name: Run migration gates explicitly
-        run: flutter test test/data/drift_repository_test.dart test/data/migration_test.dart
-      - name: Run privacy gates explicitly
-        run: >-
-          flutter test
-          test/app/data_privacy_service_test.dart
-          test/app/privacy_settings_screen_test.dart
-          test/domain/backup_test.dart
-          test/domain/csv_export_test.dart
-          test/domain/retention_test.dart
-      - name: Run accessibility gate explicitly
-        run: flutter test test/app/accessibility_test.dart
-
-  android:
-    name: Package debug-signed Android APK
-    needs: quality
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Check out source
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-      - name: Install Java
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          distribution: temurin
-          java-version: '17'
-      - name: Install Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          channel: stable
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-      - name: Resolve locked dependencies
-        run: flutter pub get --enforce-lockfile
-      - name: Build debug-signed APK
-        run: flutter build apk --debug
-      - name: Give APK an honest candidate name
-        env:
-          VERSION: ${{ needs.quality.outputs.version }}
-        run: |
-          mkdir -p dist
-          mv build/app/outputs/flutter-apk/app-debug.apk \
-            "dist/tail-tally-${VERSION}-android-debug-signed.apk"
-      - name: Upload Android internal-test artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: tail-tally-${{ needs.quality.outputs.version }}-android-debug-signed-attempt-${{ github.run_attempt }}
-          path: dist/*.apk
-          if-no-files-found: error
-          retention-days: 14
-
-  ios:
-    name: Package unsigned iOS Simulator app
-    needs: quality
+  test-and-build:
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
-      - name: Check out source
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Install Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          channel: stable
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-      - name: Resolve locked dependencies
-        run: flutter pub get --enforce-lockfile
-      - name: Build unsigned Simulator app
-        run: flutter build ios --simulator --no-codesign
-      - name: Archive Simulator app with an honest candidate name
-        env:
-          VERSION: ${{ needs.quality.outputs.version }}
+      - name: Test scheduling, backup compatibility, and local data safety
+        run: swift test
+      - name: Build iPhone Simulator app
+        run: xcodebuild -project TailTally.xcodeproj -scheme TailTally -configuration Release -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+      - name: Verify iPhone-only target
         run: |
-          mkdir -p dist
-          COPYFILE_DISABLE=1 tar \
-            -czf "dist/tail-tally-${VERSION}-ios-simulator-unsigned-app.tar.gz" \
-            -C build/ios/iphonesimulator Runner.app
-      - name: Upload iOS internal-test artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+          python3 - <<'PY'
+          import plistlib
+          with open('build/Build/Products/Release-iphonesimulator/TailTally.app/Info.plist', 'rb') as f:
+              info = plistlib.load(f)
+          assert info['UIDeviceFamily'] == [1], info['UIDeviceFamily']
+          PY
+      - name: Package simulator build
+        run: tar -czf TailTally-iphone-simulator.tar.gz -C build/Build/Products/Release-iphonesimulator TailTally.app
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: tail-tally-${{ needs.quality.outputs.version }}-ios-simulator-unsigned-app-attempt-${{ github.run_attempt }}
-          path: dist/*.tar.gz
+          name: TailTally-iphone-simulator
+          path: TailTally-iphone-simulator.tar.gz
           if-no-files-found: error
-          retention-days: 14
-
-  prerelease:
-    name: Publish gated GitHub prerelease
-    if: github.ref_type == 'tag'
-    needs:
-      - quality
-      - android
-      - ios
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - name: Check out source without credentials
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-      - name: Download gated build artifacts
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
-        with:
-          # Full-run reruns only: never mix artifacts from different attempts.
-          pattern: tail-tally-${{ needs.quality.outputs.version }}-*-attempt-${{ github.run_attempt }}
-          path: dist
-          merge-multiple: true
-      - name: Create checksums and source provenance
-        env:
-          RELEASE_VERSION: ${{ needs.quality.outputs.version }}
-          SOURCE_REF: ${{ github.ref }}
-          SOURCE_SHA: ${{ github.sha }}
-          WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: >-
-          python3 tools/release.py provenance
-          --output-dir dist
-          --version "$RELEASE_VERSION"
-          --source-sha "$SOURCE_SHA"
-          --source-ref "$SOURCE_REF"
-          --run-url "$WORKFLOW_RUN_URL"
-          dist/*.apk dist/*.tar.gz
-      - name: Verify checksums before publishing
-        working-directory: dist
-        run: sha256sum --check SHA256SUMS
-      - name: Create immutable GitHub prerelease with verified assets
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          assets=(dist/*.apk dist/*.tar.gz dist/SHA256SUMS dist/PROVENANCE.json)
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release $RELEASE_TAG already exists; tags and release assets are immutable." >&2
-            echo "Bump the prerelease/build version and publish a new rc tag instead." >&2
-            exit 1
-          fi
-          gh release create "$RELEASE_TAG" "${assets[@]}" \
-            --verify-tag \
-            --prerelease \
-            --title "Tail Tally $RELEASE_TAG" \
-            --notes-file CHANGELOG.md

@@ -1,17 +1,13 @@
-# Architecture boundaries
+# Native architecture
 
-Tail Tally uses a local-first layered structure under `lib/`:
+`TailTallyCore` is a local Swift package with Foundation-only models, scheduling rules, validated backup serialization, CSV escaping, retention, and an atomic file store. The iPhone app imports this module; the domain module never imports SwiftUI, UIKit, or UserNotifications.
 
-| Folder | Responsibility | Allowed dependencies |
-| --- | --- | --- |
-| `app/` | Flutter UI, navigation, state, composition | `domain/`, plus concrete adapters only at composition roots |
-| `domain/` | Entities, business rules, use cases, repository contracts | Dart standard library only |
-| `data/` | Drift/SQLite repositories, migrations, backup/export adapters | `domain/` |
-| `platform/` | Notifications, permissions, and local file adapters | `domain/` when implementing a domain-facing contract |
+`AppModel` owns state on the main actor. Each mutation edits a value copy, validates it, persists it atomically, and only then publishes it. A failed load locks ordinary mutations rather than overwriting existing data with an empty household. Restore validates before replacement. Delete-all verifies the saved empty state. iOS writes use file protection until first authentication.
 
-Dependencies point inward toward `domain/`. The domain layer never imports
-Flutter, persistence libraries, platform channels, network clients, or account
-services. Core pet-care routines remain available offline without an account.
+Schedule times are local wall-clock values with ISO weekdays. Calendar-day arithmetic handles midnight and daylight-saving changes. Completion timestamps are absolute dates. Native completions carry a window/day key to avoid satisfying two windows or changing identity on timezone travel. Legacy backups without occurrence keys retain the previous-close/next-open attribution rule.
 
-The app is a routine organizer. These boundaries must not grow veterinary
-diagnosis, treatment, or emergency-monitoring behavior.
+Backups retain the original v1/schema-4 envelope and table names, with optional native completion IDs and occurrence keys. Unknown versions, broken references, duplicate IDs/completions, invalid times, and invalid preferences are rejected before writes. The original Flutter SQLite store requires explicit export/import; it is never silently replaced.
+
+Notification refreshes are serialized and cancel the old pending plan before scheduling the new one. Permission is requested only when reminders are enabled. Each plan covers the next seven days, with the earliest 60 notifications kept. Quiet hours suppress rather than postpone a reminder.
+
+Screenshots use DEBUG-only launch arguments and fictional household fixtures in a separate store. Release builds do not expose screenshot arguments or seed data.

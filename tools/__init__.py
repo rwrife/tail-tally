@@ -1,1 +1,0 @@
-"""Tail Tally repository tooling."""

@@ -1,17 +1,14 @@
-# Flutter/Dart
-.dart_tool/
-.packages
-.pub/
+# Swift / Xcode
+.build/
+build-release/
+.swiftpm/
 build/
-coverage/
-.flutter-plugins
-.flutter-plugins-dependencies
-
-# IDE
+build-release/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcresult
+# OS / editor
+.DS_Store
 .idea/
 .vscode/
-*.iml
-
-# OS
-.DS_Store
-Thumbs.db
